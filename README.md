@@ -1,28 +1,8 @@
-[![Build Status](https://travis-ci.org/gjkennedy/tacs.svg?branch=master)](https://travis-ci.org/gjkennedy/tacs)
 
 # TACS Overview #
 
 The Toolkit for the Analysis of Composite Structures (TACS) is a parallel finite-element code for analysis and gradient-based design of advanced structures. Originally, TACS was primarily designed as a tool for the analysis of shell structures, such as wing-boxes. More recently it has been extended to perform topology optimization of large three-dimensional structures using gradient-based methods.
 
-TACS has been under continuous development since 2010 by the [Structural and Multidisciplinary Design Optimization group at Georgia Tech](http://gkennedy.gatech.edu) and by the [Multidisciplinary Design Optimization Lab at the University of Michigan](http://mdolab.engin.umich.edu/).
-
-# How to cite TACS #
-
-If you use TACS, please cite one or more of the following papers.
-
-This paper describes the time-dependent flexible multibody dynamics and adjoint capabilities implemented in TACS:
-
-K. Boopathy and G. J. Kennedy.  "Parallel Finite Element Framework for Rotorcraft Multibody Dynamics and Discrete Adjoint Sensitivities", 2019, https://doi.org/10.2514/1.J056585 
-
-This paper describes the core functionality of TACS, including the adjoint-based gradient evaluation techniques it implements:
-
-Kennedy, G. J. and Martins, J. R. R. A, "A parallel finite-element framework for large-scale gradient-based design optimization of high-performance structures", Finite Elements in Analysis and Design, 2014, doi:http://dx.doi.org/10.1016/j.finel.2014.04.011
-
-These papers describe in detail the aggregation functional implementation in TACS:
-
-Kennedy, G. J. and Hicken, J. E., "Improved Constraint-Aggregation Methods", Computer Methods in Applied Mechanics and Engineering, 2015, doi:10.1016/j.cma.2015.02.017
-
-Kennedy, G. J., "Strategies for adaptive optimization with aggregation constraints using interior-point methods", 2015, doi:10.1016/j.compstruc.2015.02.024
 
 # Setting up and installing TACS #
 
