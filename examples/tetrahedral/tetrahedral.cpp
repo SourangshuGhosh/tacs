@@ -1,21 +1,35 @@
-#include "TACSLinearElasticity.h"
-#include "TACSQuadBasis.h"
-#include "TACSElement2D.h"
+#include "TACSCreator.h"
 #include "TACSToFH5.h"
 #include "TACSMeshLoader.h"
-#include "TACSKSFailure.h"
+#include "TACSHeatConduction.h"
+#include "TACSLinearElasticity.h"
+#include "TACSThermoelasticity.h"
+#include "TACSTetrahedralBasis.h"
+#include "TACSElement3D.h"
+#include "TACSStructuralMass.h"
+#include "TACSElementVerification.h"
 
-/*
-  The following test illustrates the use of PlaneStressQuad elements
-  and demonstrates how to load a BDF file using the TACSMeshLoader
-  object. This example can be run in parallel.
-*/
 int main( int argc, char *argv[] ){
   MPI_Init(&argc, &argv);
 
+  // Check whether to use elasticity or thoermoelasticity
+  int analysis_type = 0;
+  for ( int i = 0; i < argc; i++ ){
+    if (strcmp(argv[i], "conduction") == 0){
+      analysis_type = 1;
+    }
+    else if (strcmp(argv[i], "thermoelasticity") == 0){
+      analysis_type = 2;
+    }
+  }
+
   // Create the mesh loader object on MPI_COMM_WORLD. The
   // TACSAssembler object will be created on the same comm
-  TACSMeshLoader *mesh = new TACSMeshLoader(MPI_COMM_WORLD);
+  MPI_Comm comm = MPI_COMM_WORLD;
+  int mpi_rank;
+  MPI_Comm_rank(comm, &mpi_rank);
+
+  TACSMeshLoader *mesh = new TACSMeshLoader(comm);
   mesh->incref();
 
   // Create the isotropic material class
@@ -29,23 +43,36 @@ int main( int argc, char *argv[] ){
   TACSMaterialProperties *props =
     new TACSMaterialProperties(rho, specific_heat, E, nu, ys, cte, kappa);
 
-  // Create the stiffness object
-  TACSPlaneStressConstitutive *stiff =
-    new TACSPlaneStressConstitutive(props);
+  // Create stiffness (need class)
+  TACSSolidConstitutive *stiff =
+    new TACSSolidConstitutive(props);
   stiff->incref();
 
-  // Create the model class
-  TACSLinearElasticity2D model(stiff, TACS_LINEAR_STRAIN);
+  // Create model (need class)
+  TACSElementModel *model = NULL;
+  if (analysis_type == 1){
+    model = new TACSHeatConduction3D(stiff);
+  }
+  else if (analysis_type == 2){
+    model = new TACSLinearThermoelasticity3D(stiff, TACS_LINEAR_STRAIN);
+  }
+  else {
+    model = new TACSLinearElasticity3D(stiff, TACS_LINEAR_STRAIN);
+  }
+  int vars_per_node = model->getVarsPerNode();
 
-  // Create the basis
-  TACSElementBasis *linear_basis = new TACSLinearQuadBasis();
-  TACSElementBasis *quad_basis = new TACSQuadraticQuadBasis();
-  TACSElementBasis *cubic_basis = new TACSCubicQuadBasis();
+  // Create basis
+  TACSElementBasis *linear_basis = new TACSLinearTetrahedralBasis();
+  TACSElementBasis *quad_basis = new TACSQuadraticTetrahedralBasis();
 
-  // Create the element type
-  TACSElement2D *linear_element = new TACSElement2D(&model, linear_basis);
-  TACSElement2D *quad_element = new TACSElement2D(&model, quad_basis);
-  TACSElement2D *cubic_element = new TACSElement2D(&model, cubic_basis);
+  if (mpi_rank == 0){
+    TacsTestElementBasis(linear_basis);
+    TacsTestElementBasis(quad_basis);
+  }
+
+  // Create the element type (need 3D element class)
+  TACSElement3D *linear_element = new TACSElement3D(model, linear_basis);
+  TACSElement3D *quad_element = new TACSElement3D(model, quad_basis);
 
   // The TACSAssembler object - which should be allocated if the mesh
   // is loaded correctly
@@ -72,15 +99,12 @@ int main( int argc, char *argv[] ){
 
           // Get the BDF description of the element
           const char *elem_descript = mesh->getElementDescript(i);
-          if (strcmp(elem_descript, "CQUAD4") == 0){
+          if (strcmp(elem_descript, "CTETRA") == 0 ||
+              strcmp(elem_descript, "CTETRA4") == 0){
             elem = linear_element;
           }
-          else if (strcmp(elem_descript, "CQUAD") == 0 ||
-                   strcmp(elem_descript, "CQUAD9") == 0){
+          else if (strcmp(elem_descript, "CTETRA10") == 0){
             elem = quad_element;
-          }
-          else if (strcmp(elem_descript, "CQUAD16") == 0){
-            elem = cubic_element;
           }
 
           // Set the element object into the mesh loader class
@@ -90,7 +114,6 @@ int main( int argc, char *argv[] ){
         }
 
         // Now, create the TACSAssembler object
-        int vars_per_node = 2;
         assembler = mesh->createTACS(vars_per_node);
         assembler->incref();
       }
@@ -104,62 +127,66 @@ int main( int argc, char *argv[] ){
   }
 
   if (assembler){
-    int mpi_rank;
-    MPI_Comm_rank(assembler->getMPIComm(), &mpi_rank);
-
-    // Create the matrices and vectors
-    TACSBVec *force = assembler->createVec();
+    // Create the preconditioner
     TACSBVec *res = assembler->createVec();
     TACSBVec *ans = assembler->createVec();
-    TACSSerialPivotMat *mat = assembler->createSerialMat();
+    TACSSchurMat *mat = assembler->createSchurMat();
 
     // Increment the reference count to the matrix/vectors
-    force->incref();
     res->incref();
     ans->incref();
     mat->incref();
 
-    // Allocate the direct factorization
-    TACSSerialPivotPc *pc = new TACSSerialPivotPc(mat);
+    // Allocate the factorization
+    int lev = 4500;
+    double fill = 10.0;
+    int reorder_schur = 1;
+    TACSSchurPc *pc = new TACSSchurPc(mat, lev, fill, reorder_schur);
     pc->incref();
 
     // Allocate the GMRES object
     int gmres_iters = 80;
     int nrestart = 2; // Number of allowed restarts
     int is_flexible = 0; // Is a flexible preconditioner?
-    TACSKsm *gmres = new GMRES(mat, pc, gmres_iters,
-                               nrestart, is_flexible);
-    gmres->incref();
-    gmres->setMonitor(new KSMPrintStdout("GMRES", mpi_rank, 1));
+    TACSKsm *ksm = new GMRES(mat, pc, gmres_iters,
+                             nrestart, is_flexible);
+    ksm->incref();
 
     // Assemble and factor the stiffness/Jacobian matrix
     double alpha = 1.0, beta = 0.0, gamma = 0.0;
     assembler->assembleJacobian(alpha, beta, gamma, res, mat);
     pc->factor();
 
-    force->set(1.0);
-    assembler->applyBCs(force);
-    gmres->solve(force, ans);
+    res->set(1.0);
+    assembler->applyBCs(res);
+    ksm->solve(res, ans);
     assembler->setVariables(ans);
 
-    mat->mult(ans, res);
-    res->axpy(-1.0, force);
-    TacsScalar res_norm = res->norm();
-    if (mpi_rank == 0){
-      printf("||R||: %20.15e\n", TacsRealPart(res_norm));
-    }
+#ifdef TACS_USE_COMPLEX
+    assembler->testElement(0, 2, 1e-30);
+#else
+    assembler->testElement(0, 2);
+#endif
 
-    assembler->setVariables(ans);
+    // The function that we will use: The KS failure function evaluated
+    // over all the elements in the mesh
+    TACSFunction *func = new TACSStructuralMass(assembler);
+    func->incref();
+
+    // Evaluate the function
+    TacsScalar mass = 0.0;
+    assembler->evalFunctions(1, &func, &mass);
+    printf("StructuralMass: %e\n", TacsRealPart(mass));
 
     // Create an TACSToFH5 object for writing output to files
-    ElementType etype = TACS_PLANE_STRESS_ELEMENT;
+    ElementType etype = TACS_SOLID_ELEMENT;
     int write_flag = (TACS_OUTPUT_CONNECTIVITY |
                       TACS_OUTPUT_NODES |
                       TACS_OUTPUT_DISPLACEMENTS |
                       TACS_OUTPUT_STRAINS |
                       TACS_OUTPUT_STRESSES |
                       TACS_OUTPUT_EXTRAS);
-    TACSToFH5 *f5 = new TACSToFH5(assembler, etype, write_flag);
+    TACSToFH5 * f5 = new TACSToFH5(assembler, etype, write_flag);
     f5->incref();
     f5->writeToFile("output.f5");
 
@@ -167,10 +194,9 @@ int main( int argc, char *argv[] ){
     f5->decref();
 
     // Decrease the reference count to the linear algebra objects
-    gmres->decref();
+    ksm->decref();
     pc->decref();
     mat->decref();
-    force->decref();
     ans->decref();
     res->decref();
   }
