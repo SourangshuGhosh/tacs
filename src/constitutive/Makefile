@@ -7,19 +7,25 @@
 include ../../Makefile.in
 include ../../TACS_Common.mk
 
-CXX_OBJS = TACSConstitutive.o \
-	YSlibrary.o \
-	MaterialProperties.o \
-	SolidStiffness.o \
-	PlaneStressStiffness.o \
-	FSDTStiffness.o \
-	isoFSDTStiffness.o \
-	compFSDTStiffness.o \
-	EBStiffness.o \
-	TimoshenkoStiffness.o \
-	TACSPanelAnalysis.o \
-	CoupledThermoPlaneStressStiffness.o \
-	CoupledThermoSolidStiffness.o
+CXX_OBJS = TACSMaterialProperties.o \
+	TACSConstitutive.o \
+	TACSConstitutiveVerification.o \
+	TACSPlaneStressConstitutive.o \
+	TACSSolidConstitutive.o \
+	TACSTimoshenkoConstitutive.o
+
+#	TACSShellConstitutive.o \
+# 	MaterialProperties.o \
+# 	SolidStiffness.o \
+# 	PlaneStressStiffness.o \
+# 	FSDTStiffness.o \
+# 	isoFSDTStiffness.o \
+# 	compFSDTStiffness.o \
+# 	EBStiffness.o \
+# 	TimoshenkoStiffness.o \
+# 	TACSPanelAnalysis.o \
+# 	CoupledThermoPlaneStressStiffness.o \
+# 	CoupledThermoSolidStiffness.o
 
 DIR=${TACS_DIR}/src/constitutive
 
