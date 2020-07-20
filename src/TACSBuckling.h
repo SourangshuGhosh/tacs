@@ -62,7 +62,7 @@ class TACSLinearBuckling : public TACSObject {
   // Solve the eigenvalue problem
   // ----------------------------
   void solve( TACSVec *rhs=NULL, KSMPrint *ksm_print=NULL );
-  void evalEigenDVSens( int n, TacsScalar fdvSens[], int numDVs );
+  void evalEigenDVSens( int n, TACSBVec *dfdx );
 
   // Extract the eigenvalue or check the solution
   // --------------------------------------------
@@ -133,14 +133,14 @@ class TACSFrequencyAnalysis : public TACSObject {
                          TacsScalar _sigma,
                          TACSMat *_mmat, TACSMat *_kmat,
                          TACSMat *_pcmat, TACSPc *_pc,
-                         int max_jd_size, 
+                         int max_jd_size,
                          int fgmres_size, int num_eigvals,
                          double eigtol=1e-9,
-                         double eig_rtol=1e-9, 
+                         double eig_rtol=1e-9,
                          double eig_atol=1e-30,
                          int num_recycle=0,
                          JDRecycleType recycle_type=JD_NUM_RECYCLE );
-  
+
   ~TACSFrequencyAnalysis();
 
   // Retrieve the instance of TACSAssembler
@@ -152,7 +152,7 @@ class TACSFrequencyAnalysis : public TACSObject {
   TacsScalar getSigma();
   void setSigma( TacsScalar _sigma );
   void solve( KSMPrint *ksm_print=NULL, KSMPrint *ksm_file=NULL );
-  void evalEigenDVSens( int n, TacsScalar fdvSens[], int numDVs );
+  void evalEigenDVSens( int n, TACSBVec *dfdx );
 
   // Extract and check the solution
   // ------------------------------
