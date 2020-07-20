@@ -7,16 +7,27 @@
 include ../../Makefile.in
 include ../../TACS_Common.mk
 
-CXX_OBJS = TACSElement.o \
-	FElibrary.o \
-	TACSShell.o \
-	ShellUtils.o \
-	LargeRotUtils.o \
-	PlaneStressTri6.o \
-	MITC3.o \
-	MITC9.o \
-	RigidBody.o \
-	KinematicConstraints.o	
+CXX_OBJS = FElibrary.o \
+	TACSElement.o \
+	TACSElement2D.o \
+	TACSElement3D.o \
+	TACSElementTypes.o \
+	TACSElementBasis.o \
+	TACSLineBasis.o \
+	TACSQuadBasis.o \
+	TACSHexaBasis.o \
+	TACSTriangularBasis.o \
+	TACSTetrahedralBasis.o \
+	TACSQuadBernsteinBasis.o \
+	TACSHexaBernsteinBasis.o \
+	TACSElementMappedBasis.o \
+	TACSBeamBasis.o \
+	TACSLinearElasticity.o \
+	TACSThermoelasticity.o \
+	TACSHeatConduction.o \
+	TACSTraction2D.o \
+	TACSTraction3D.o \
+	TACSElementVerification.o
 
 DIR=${TACS_DIR}/src/elements
 
