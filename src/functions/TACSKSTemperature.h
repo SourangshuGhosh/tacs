@@ -12,23 +12,22 @@
   http://www.apache.org/licenses/LICENSE-2.0
 */
 
-#ifndef TACS_KS_MAT_TEMPERATURE_H
-#define TACS_KS_MAT_TEMPERATURE_H
+#ifndef TACS_KS_TEMPERATURE_H
+#define TACS_KS_TEMPERATURE_H
 
 #include "TACSFunction.h"
-#include "KSTemperature.h"
+
 /*
   Compute the KS functional of the displacement along a given direction
 */
-class TACSKSMatTemperature : public TACSFunction {
+class TACSKSTemperature : public TACSFunction {
  public:
-  /* enum KSTemperatureType { DISCRETE, CONTINUOUS, */
-  /*                          PNORM_DISCRETE, PNORM_CONTINUOUS }; */
+  enum KSTemperatureType { DISCRETE, CONTINUOUS,
+                           PNORM_DISCRETE, PNORM_CONTINUOUS };
 
-  TACSKSMatTemperature( TACSAssembler *_tacs, double _ksWeight,
-                        TACSKSTemperature::KSTemperatureType _ksType=TACSKSTemperature::CONTINUOUS,
-                        int _nmats=1 );
-  ~TACSKSMatTemperature();
+  TACSKSTemperature( TACSAssembler *_tacs, double _ksWeight,
+                     KSTemperatureType _ksType=CONTINUOUS );
+  ~TACSKSTemperature();
 
   // Retrieve the name of the function
   // ---------------------------------
@@ -40,10 +39,7 @@ class TACSKSMatTemperature : public TACSFunction {
 
   // Set the type of displacement aggregate
   // --------------------------------------
-  void setKSDispType( TACSKSTemperature::KSTemperatureType _ksType );
-  void setNumMats( int _nmats ){
-    nmats = _nmats;
-  }
+  void setKSDispType( KSTemperatureType _ksType );
 
   // Collective calls on the TACS MPI Comm
   // -------------------------------------
@@ -102,18 +98,18 @@ class TACSKSMatTemperature : public TACSFunction {
 
   // Intermediate values in the functional evaluation
   TacsScalar ksSum;
-  TacsScalar *maxValue;
+  TacsScalar maxValue;
   TacsScalar invPnorm;
 
   // Set the type of constraint aggregate
-  TACSKSTemperature::KSTemperatureType ksType;
+  KSTemperatureType ksType;
 
   // The max number of nodes
   int maxNumNodes;
 
   // Whether the domain is a plane stress or 3d
   int is_2d, is_3d;
-  int nmats;
+
 };
 
 #endif // TACS_KS_DISPLACEMENT_H
