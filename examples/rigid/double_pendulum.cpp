@@ -1,6 +1,6 @@
 #include "TACSIntegrator.h"
 #include "TACSAssembler.h"
-#include "RigidBody.h"
+#include "TACSRigidBody.h"
 
 /*
   Function to test the rigid body dynamics implementation
@@ -34,20 +34,16 @@ int main( int argc, char *argv[] ){
   const TacsScalar JA[6] = {1.0/3.0, 0.0, 0.0,
                             1.0/3.0, 0.0,
                             1.0/3.0};
-  
-  // Define dynamics properties
-  TACSGibbsVector *rAInitVec = new TACSGibbsVector(0.0, 2.5, 0.0); 
 
-  // Create visualization
-  TACSRigidBodyViz *vizA = new TACSRigidBodyViz(0.5, 5.0, 0.5);
+  // Define dynamics properties
+  TACSGibbsVector *rAInitVec = new TACSGibbsVector(0.0, 2.5, 0.0);
 
   // Construct a rigid body
   TACSRigidBody *bodyA = new  TACSRigidBody(refFrameA,
                                             mA, cA, JA,
                                             rAInitVec, zero, zero, gravVec);
-  bodyA->setVisualization(vizA);
-  bodyA->setComponentNum(0);
   bodyA->incref();
+  bodyA->setComponentNum(0);
 
   // Define the inertial properties
   const TacsScalar mB    = 2.0;
@@ -59,14 +55,10 @@ int main( int argc, char *argv[] ){
   // Define dynamics properties
   TACSGibbsVector *rBInitVec = new TACSGibbsVector(0.0, 5.5, 0.0);
 
-  // Create visualization
-  TACSRigidBodyViz *vizB = new TACSRigidBodyViz(1.0);
-  
   // Construct the second rigid body
-  TACSRigidBody *bodyB = new  TACSRigidBody(refFrameA, 
+  TACSRigidBody *bodyB = new  TACSRigidBody(refFrameA,
                                             mB, cB, JB,
                                             rBInitVec, zero, zero, gravVec);
-  bodyB->setVisualization(vizB);
   bodyA->setComponentNum(1);
   bodyB->incref();
 
@@ -76,7 +68,7 @@ int main( int argc, char *argv[] ){
 
   // Create a revolute axis
   TACSGibbsVector *rev = new TACSGibbsVector(1.0, 1.0, 1.0);
-  
+
   // Set the constraints
   TACSElement *conA, *conB;
   if (use_revolute){
@@ -102,18 +94,18 @@ int main( int argc, char *argv[] ){
   TACSAssembler *tacs = new TACSAssembler(MPI_COMM_WORLD, vars_per_node,
                                           num_nodes, num_elems);
   tacs->incref();
-  
+
   // Set the elements
   TACSElement *elements[] = {bodyA, bodyB, conA, conB};
   tacs->setElements(elements);
-  
+
   // Set the connectivity
-  int conn[] = {0, 
-                1, 
+  int conn[] = {0,
+                1,
                 0, 2,
                 0, 1, 3};
   int ptr[]  = {0, 1, 2, 4, 7};
-  tacs->setElementConnectivity(conn, ptr);
+  tacs->setElementConnectivity(ptr, conn);
   tacs->initialize();
 
   tacs->testElement(2, 2);
@@ -134,10 +126,10 @@ int main( int argc, char *argv[] ){
   int    num_stages       = 2;
   int    max_bdf_order    = 2;
   TACSBDFIntegrator *bdf = new TACSBDFIntegrator(tacs, tinit, tfinal,
-                                                 steps_per_second, 
+                                                 steps_per_second,
                                                  max_bdf_order);
   bdf->incref();
-  
+
   // Set optional parameters
   bdf->setRelTol(1.0e-8);
   bdf->setAbsTol(1.0e-12);
